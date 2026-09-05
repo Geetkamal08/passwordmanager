@@ -95,6 +95,13 @@ HTML_TEMPLATE = '''
             <button onclick="getPassword()">Get Password</button>
             <div id="getResult" class="result"></div>
         </div>
+
+        <div class="section">
+            <h2>Delete a Password</h2>
+            <input type="text" id="deleteUsername" placeholder="Username">
+            <button onclick="deletePassword()">Delete Password</button>
+            <div id="deleteResult" class="result"></div>
+        </div>
     </div>
 
     <script>
@@ -145,6 +152,28 @@ HTML_TEMPLATE = '''
             .catch(err => showResult(resultDiv, 'Error: ' + err, false));
         }
 
+        function deletePassword() {
+            const username = document.getElementById('deleteUsername').value;
+            const resultDiv = document.getElementById('deleteResult');
+
+            if (!username) {
+                showResult(resultDiv, 'Please enter a username', false);
+                return;
+            }
+
+            fetch('/delete/' + encodeURIComponent(username), {
+                method: 'DELETE'
+            })
+            .then(res => res.json())
+            .then(data => {
+                showResult(resultDiv, data.message || data.error, !data.error);
+                if (!data.error) {
+                    document.getElementById('deleteUsername').value = '';
+                }
+            })
+            .catch(err => showResult(resultDiv, 'Error: ' + err, false));
+        }
+
         function showResult(element, message, isSuccess) {
             element.textContent = message;
             element.className = 'result ' + (isSuccess ? 'success' : 'error');
@@ -176,6 +205,13 @@ def get_password(username):
     if username not in store:
         return jsonify({'error': 'Username not found'}), 404
     return jsonify({'username': username, 'password': store[username]}), 200
+
+@app.route('/delete/<username>', methods=['DELETE'])
+def delete_password(username):
+    if username not in store:
+        return jsonify({'error': 'Username not found'}), 404
+    del store[username]
+    return jsonify({'message': 'Password deleted successfully'}), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
